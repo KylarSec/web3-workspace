@@ -6,9 +6,9 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
 
 /*
  * FundMe contract
- * Users will be able to fund this contract with ETH.
- * A minimum contribution in USD will be enforced later
- * using Chainlink price feeds.
+ * - Users send ETH
+ * - Contract checks ETH value in USD
+ * - Uses Chainlink to get ETH/USD price
  */
 contract FundMe {
     // declares a variable that will hold the address of a Chainlink price feed contract.
@@ -26,34 +26,84 @@ contract FundMe {
         );
     }
 
-    // Minimum funding amount expressed in USD (not enforced yet)
-    uint256 public minimumUsd = 5;
+    // Minimum funding amount in USD
+    // Scaled to 18 decimals so it matches ETH math
+    uint256 public minimumUSD = 5 * 1e18;
+
 
     /*
-     * Allows users to send ETH to the contract.
-     * NOTE: Currently this check compares wei to a plain number.
-     * USD conversion logic will be added in a later step.
+     * Allows users to send ETH to the contract
+     * - msg.value is the ETH amount sent (wei, 18 decimals)
+     * - We convert ETH to USD and check if it meets minimumUSD
      */
     function fund() public payable {
-        require(msg.value >= minimumUsd, "Didn't send enough ETH.");
+        require(
+            getConversionRate(msg.value) >= minimumUSD,
+            "Didn't send enough ETH."
+        );
     }
 
     // Withdraw ETH (to be implemented later)
     function withdraw() public {}
-        
-    /**
-     * The function reads the ETH/USD price from Chainlink, scales it to 18 decimals,
-     * and returns it so it can be safely used in ETH calculations.
-     */
+
+     /*
+      * Reads ETH/USD price from Chainlink
+      * - Chainlink returns price with 8 decimals
+      * - We convert it to 18 decimals so it matches ETH math
+      */
     function getPrice() public view returns (uint256) {
+        // Call Chainlink price feed
         (, int256 answer, , , ) = dataFeed.latestRoundData();
 
+        // Ensure the price is positive before converting to uint
+        require(answer > 0, "Invalid Price");
+
         // Convert price from 8 decimals to 18 decimals
-        return uint(answer) * 1e10 ;
+        return uint(answer) * 1e10;
     }
 
-    // Check price feed version
+
+    /*
+     * Converts ETH amount to USD value
+     * - ethAmount is usually msg.value
+     * - Returns USD value with 18 decimals
+     */
+    function getConversionRate(
+        uint256 ethAmount
+    ) internal view returns (uint256) {
+
+        // ETH price in USD (18 decimals)
+        uint256 ethPrice = getPrice();
+
+         // ETH --> USD conversion
+        uint256 ethAmountinUsd = (ethPrice * ethAmount) / 1e18;
+
+        return ethAmountinUsd;
+    }
+
+        /*
+     * Converts a USD amount into ETH
+     * - USDAmount: USD value with 18 decimals
+     * - Returns ETH amount with 18 decimals
+     */
+    function convertUSDtoETH(uint256 USDAmount) public view returns (uint256) {
+        
+         // Get price of 1 ETH in USD (18 decimals)
+        uint256 ETHPrice = getPrice();
+        
+        // USD -> ETH conversion
+        // Multiply first to keep precision
+        return (USDAmount * 1e18) / ETHPrice;
+    }
+
+    // Returns the version of the Chainlink price feed
+    // Used only to confirm correct connection
     function getVersion() public view returns (uint256) {
         return dataFeed.version();
+    }
+
+    // function to check decimal value
+    function getDecimalValue() public view returns (uint256) {
+        return dataFeed.decimals();
     }
 }
