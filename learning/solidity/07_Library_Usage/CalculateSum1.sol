@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.18;
+
+/*
+ * This Contract will call library with using X for y
+*/
+
+// Import the "MathLibrary" Library
+import {MathLibrary} from "./MathLibrary.sol";
+
+contract Calculate {
+
+    using MathLibrary for uint256;
+
+    // Function to add two numbers by calling sum function from libray.
+    function calculateSum(uint256 _a , uint256 _b) public pure returns (uint256) {
+        return _a.sum(_b);
+    }
+}
