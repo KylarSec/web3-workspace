@@ -30,6 +30,14 @@ contract FundMe {
     // Scaled to 18 decimals so it matches ETH math
     uint256 public minimumUSD = 5 * 1e18;
 
+    // An array to keep the addresses
+    address[] public funders;
+
+    // A mapping to check amount by addresess
+    mapping(address => uint256) public addressToFundedAmount;
+
+    // Mapping to monitor how many times a user calls the fund() function.
+    mapping(address => uint256) contributionCount;
 
     /*
      * Allows users to send ETH to the contract
@@ -41,16 +49,29 @@ contract FundMe {
             getConversionRate(msg.value) >= minimumUSD,
             "Didn't send enough ETH."
         );
+
+        // add addresses to the array who sends money to the contract.
+        // The msg.sender global variable refers to the address that initiates the transaction.
+        funders.push(msg.sender);
+
+        /*
+         * Mapping associates each funder's address with the total amount they have contributed.
+         * When a new amount is sent, we can add it to the user's total contribution
+         */
+        addressToFundedAmount[msg.sender] += msg.value;
+
+        // Count everytime a user funds
+        contributionCount[msg.sender] += 1;
     }
 
     // Withdraw ETH (to be implemented later)
     function withdraw() public {}
 
-     /*
-      * Reads ETH/USD price from Chainlink
-      * - Chainlink returns price with 8 decimals
-      * - We convert it to 18 decimals so it matches ETH math
-      */
+    /*
+     * Reads ETH/USD price from Chainlink
+     * - Chainlink returns price with 8 decimals
+     * - We convert it to 18 decimals so it matches ETH math
+     */
     function getPrice() public view returns (uint256) {
         // Call Chainlink price feed
         (, int256 answer, , , ) = dataFeed.latestRoundData();
@@ -62,7 +83,6 @@ contract FundMe {
         return uint(answer) * 1e10;
     }
 
-
     /*
      * Converts ETH amount to USD value
      * - ethAmount is usually msg.value
@@ -71,26 +91,24 @@ contract FundMe {
     function getConversionRate(
         uint256 ethAmount
     ) internal view returns (uint256) {
-
         // ETH price in USD (18 decimals)
         uint256 ethPrice = getPrice();
 
-         // ETH --> USD conversion
+        // ETH --> USD conversion
         uint256 ethAmountinUsd = (ethPrice * ethAmount) / 1e18;
 
         return ethAmountinUsd;
     }
 
-        /*
+    /*
      * Converts a USD amount into ETH
      * - USDAmount: USD value with 18 decimals
      * - Returns ETH amount with 18 decimals
      */
     function convertUSDtoETH(uint256 USDAmount) public view returns (uint256) {
-        
-         // Get price of 1 ETH in USD (18 decimals)
+        // Get price of 1 ETH in USD (18 decimals)
         uint256 ETHPrice = getPrice();
-        
+
         // USD -> ETH conversion
         // Multiply first to keep precision
         return (USDAmount * 1e18) / ETHPrice;
