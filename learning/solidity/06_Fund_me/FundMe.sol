@@ -14,7 +14,6 @@ import {PriceConverter} from "./PriceConverter.sol";
  * - Enforces a minimum USD amount
  */
 contract FundMe {
-
     // Any uint256 can now call functions from PriceConverter
     using PriceConverter for uint256;
 
@@ -25,7 +24,7 @@ contract FundMe {
     // List of addresses that have funded the contract
     address[] public funders;
 
-     // Tracks total ETH contributed by each address
+    // Tracks total ETH contributed by each address
     mapping(address => uint256) public addressToFundedAmount;
 
     // Tracks how many times each address has funded
@@ -57,8 +56,28 @@ contract FundMe {
         contributionCount[msg.sender] += 1;
     }
 
-    // Withdraw ETH (to be implemented later)
-    function withdraw() public {}
+    // Withdraw ETH While clearing records.
+    function withdraw() public {
+        /*
+         *starts at index 0
+         *runs until it reaches the end of the funders array
+         *increments fundersIndex by 1 each iteration
+         */
+        for (
+            uint256 fundersIndex = 0;
+            fundersIndex < funders.length;
+            fundersIndex++
+        ) {
+            // Get the funder's address at the current index.
+            address funder = funders[fundersIndex];
+
+            // Reset the total amount funded by this address to zero
+            addressToFundedAmount[funder] = 0;
+
+            // Reset the number of contributions made by this address
+            contributionCount[funder] = 0;
+        }
+    }
 
     /*
      * Converts a USD amount into ETH
