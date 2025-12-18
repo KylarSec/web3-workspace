@@ -74,5 +74,9 @@ contract FundMe {
 
         // Reset the funders array by Creating a new array with length 0.
         funders = new address[](0);
+
+        // the current contract sends the Ether amount to the msg.sender with call
+        (bool success, ) =payable(msg.sender).call{value:address(this).balance}("");
+        require(success, "Call Failed");
     }
 }

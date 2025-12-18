@@ -85,9 +85,19 @@ contract FundMeLearning {
         // Reset the funders array by Creating a new array with length 0.
         funders = new address[](0);
 
-        // the current contract sends the Ether amount to the msg.sender
-        payable(msg.sender).transfer(address(this).balance); 
+        // // the current contract sends the Ether amount to the msg.sender with transfer
+        // payable(msg.sender).transfer(address(this).balance);
+
+        // // the current contract sends the Ether amount to the msg.sender with send
+        // bool success = payable(msg.sender).send(address(this).balance);
+        // require(success, "Send Failed"); 
+
+        // the current contract sends the Ether amount to the msg.sender with call
+        (bool success, ) =payable(msg.sender).call{value:address(this).balance}("");
+        require(success, "Call Failed");
+
     }
+
 
     // Expensive Reset -- By while Loop
     function expensiveReset() public {
