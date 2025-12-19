@@ -2,6 +2,12 @@
 pragma solidity ^0.8.18;
 
 contract WithdrawTest {
+
+    address public owner;
+
+    constructor() {
+        owner = msg.sender;
+    }
     // Variable to store ToatalBalanceinWei
     uint256 internal ToatalBalanceinWei;
 
@@ -59,12 +65,50 @@ contract WithdrawTest {
         payable(msg.sender).transfer(amountinWei);
     }
 
+    // Withdraw user all balance
     function withdrawAll() external {
-        ToatalBalanceinWei = 0;
-        payable(msg.sender).transfer(address(this).balance);
+        Account storage acc = accounts[msg.sender];
+
+        require(acc.exists, "No account");
+        require(acc.balance > 0, "Account Drained.");
+
+        uint256 amount = acc.balance;
+        
+        ToatalBalanceinWei = ToatalBalanceinWei - amount;
+
+        (bool success, )= payable(msg.sender).call{value: amount}("");
+        require(success, "Call Failed");
     }
 
     function balance() public view returns (uint256) {
         return ToatalBalanceinWei / 1e18;
+    }
+
+
+
+    // Withdraw all funds in contract while resetting the Account data.
+    function WithdrawAllFund() external {
+        
+        require(msg.sender == owner, "Only Owner");
+
+        uint256 amount = address(this).balance;
+
+        for (uint256 funderIndex = 0; funderIndex < Funders.length; funderIndex++) 
+        {
+            address funder = Funders[funderIndex];
+            delete accounts[funder];
+        }
+
+
+        (bool success, )= payable(msg.sender).call{value: amount}("");
+        require(success, "Transfer Failed.");
+
+
+        ToatalBalanceinWei = 0;
+        Funders = new address[](0);
+
+
+
+
     }
 }
