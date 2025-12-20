@@ -11,6 +11,15 @@ import {PriceConverter} from "./PriceConverter.sol";
  * - Enforces a minimum USD amount
  */
 contract FundMe {
+
+    // state variable owner with the contract deployer's address
+    address public owner;
+
+    // set the contract's owner immediately after deployment
+    constructor() {
+        owner = msg.sender;
+    }
+
     // Minimum funding amount in USD
     // Scaled to 18 decimals so it matches ETH math
     uint256 public minimumUSD = 5 * 1e18;
@@ -52,6 +61,10 @@ contract FundMe {
 
     // Withdraw ETH While clearing records.
     function Withdraw() public {
+
+        // ensure it can only be called by the owner
+        require(msg.sender == owner, "Must be owner");
+
         /*
          *starts at index 0
          *runs until it reaches the end of the funders array
