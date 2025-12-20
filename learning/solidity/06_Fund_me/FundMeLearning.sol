@@ -149,4 +149,19 @@ contract FundMeLearning {
         );
         return dataFeed.decimals();
     }
+
+    
+
+    // a function callTotalAmountTo using call to send Ether from the contract to an address provided as an argument
+    function callTotalAmountTo(address _reciever) external {
+
+        require(address(this).balance > 0, "No ETH to send");
+
+        (bool success, ) = payable(_reciever).call{value: address(this).balance}("");
+        require(success, "Call Failed.");
+
+    }
+
+
+
 }
