@@ -11,18 +11,28 @@ import {PriceConverter} from "./PriceConverter.sol";
  * - Enforces a minimum USD amount
  */
 contract FundMe {
+    // Declared a custom error
+    error NotOwner();
 
     // state variable owner with the contract deployer's address
-    address public owner;
+    address public immutable i_owner;
 
     // set the contract's owner immediately after deployment
     constructor() {
-        owner = msg.sender;
+        i_owner = msg.sender;
+    }
+
+    // Modifier to check only owner with custom error.
+    modifier onlyOwner() {
+        if (msg.sender != i_owner) {
+            revert NotOwner();
+        }
+        _;
     }
 
     // Minimum funding amount in USD
     // Scaled to 18 decimals so it matches ETH math
-    uint256 public minimumUSD = 5 * 1e18;
+    uint256 public constant MINIMUM_USD = 5 * 1e18;
 
     // List of addresses that have funded the contract
     address[] public funders;
@@ -39,9 +49,9 @@ contract FundMe {
      * - Converted to USD using the PriceConverter library
      * - Reverts if the USD value is below minimumUSD
      */
-    function Fund() public payable {
+    function Fund() external payable {
         require(
-            PriceConverter.getConversionRate(msg.value) >= minimumUSD,
+            PriceConverter.getConversionRate(msg.value) >= MINIMUM_USD,
             "Didn't Send enough ETH"
         );
 
@@ -60,11 +70,7 @@ contract FundMe {
     }
 
     // Withdraw ETH While clearing records.
-    function Withdraw() public {
-
-        // ensure it can only be called by the owner
-        require(msg.sender == owner, "Must be owner");
-
+    function Withdraw() external onlyOwner {
         /*
          *starts at index 0
          *runs until it reaches the end of the funders array
@@ -89,7 +95,9 @@ contract FundMe {
         funders = new address[](0);
 
         // the current contract sends the Ether amount to the msg.sender with call
-        (bool success, ) =payable(msg.sender).call{value:address(this).balance}("");
+        (bool success, ) = payable(msg.sender).call{
+            value: address(this).balance
+        }("");
         require(success, "Call Failed");
     }
 }
