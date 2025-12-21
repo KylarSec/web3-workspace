@@ -18,12 +18,29 @@ import {PriceConverter} from "./PriceConverter.sol";
  * - Enforces a minimum USD amount
  */
 contract FundMeLearning {
+    // Declared a custom error
+    error NotOwner();
+
     // Any uint256 can now call functions from PriceConverter
     using PriceConverter for uint256;
 
+    address public immutable i_owner;
+
+    constructor() {
+        i_owner = msg.sender;
+    }
+
+    // Modifier to check only owner with custom error.
+    modifier onlyOwner() {
+        if (msg.sender != i_owner) {
+            revert NotOwner();
+        }
+        _;
+    }
+
     // Minimum funding amount in USD
     // Scaled to 18 decimals so it matches ETH math
-    uint256 public minimumUSD = 5 * 1e18;
+    uint256 public constant MINIMUM_USD = 5 * 1e18;
 
     // List of addresses that have funded the contract
     address[] public funders;
@@ -42,7 +59,7 @@ contract FundMeLearning {
      */
     function fund() public payable {
         require(
-            msg.value.getConversionRate() >= minimumUSD,
+            msg.value.getConversionRate() >= MINIMUM_USD,
             "Didn't send enough ETH."
         );
 
@@ -61,7 +78,7 @@ contract FundMeLearning {
     }
 
     // Withdraw ETH While clearing records.
-    function withdraw() public {
+    function withdraw() public onlyOwner {
         /*
          *starts at index 0
          *runs until it reaches the end of the funders array
@@ -90,14 +107,14 @@ contract FundMeLearning {
 
         // // the current contract sends the Ether amount to the msg.sender with send
         // bool success = payable(msg.sender).send(address(this).balance);
-        // require(success, "Send Failed"); 
+        // require(success, "Send Failed");
 
         // the current contract sends the Ether amount to the msg.sender with call
-        (bool success, ) =payable(msg.sender).call{value:address(this).balance}("");
+        (bool success, ) = payable(msg.sender).call{
+            value: address(this).balance
+        }("");
         require(success, "Call Failed");
-
     }
-
 
     // Expensive Reset -- By while Loop
     function expensiveReset() public {
@@ -113,11 +130,7 @@ contract FundMeLearning {
         for (uint256 funderIndex = 0; funderIndex < length; funderIndex++) {
             funders.pop();
         }
-
-    
     }
-
-
 
     /*
      * Converts a USD amount into ETH
@@ -150,18 +163,21 @@ contract FundMeLearning {
         return dataFeed.decimals();
     }
 
-    
-
     // a function callTotalAmountTo using call to send Ether from the contract to an address provided as an argument
     function callTotalAmountTo(address _reciever) external {
-
         require(address(this).balance > 0, "No ETH to send");
 
-        (bool success, ) = payable(_reciever).call{value: address(this).balance}("");
+        (bool success, ) = payable(_reciever).call{
+            value: address(this).balance
+        }("");
         require(success, "Call Failed.");
-
     }
 
-
-
+    // Withdraw only by first accont on remix.(deploy by first contract then the first contract will be privilaged with owner.)
+    function FirstAccount() external onlyOwner {
+        (bool success, ) = payable(msg.sender).call{
+            value: address(this).balance
+        }("");
+        require(success, "Failure");
+    }
 }
